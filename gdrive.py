@@ -1,5 +1,6 @@
 import os.path
 import pickle
+import base64
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
@@ -13,6 +14,17 @@ def get_drive_service():
     """Shows basic usage of the Drive v3 API.
     """
     creds = None
+    
+    # Check for Base64 token in env var (Fix for Render/Heroku binary file issues)
+    if os.environ.get('TOKEN_PICKLE'):
+        try:
+            print("Found TOKEN_PICKLE env var. Decoding...")
+            with open('token.pickle', 'wb') as token:
+                token.write(base64.b64decode(os.environ.get('TOKEN_PICKLE')))
+            print("Successfully restored token.pickle from env var.")
+        except Exception as e:
+            print(f"Error decoding TOKEN_PICKLE env var: {e}")
+
     # The file token.pickle stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
