@@ -44,6 +44,7 @@ class Database:
                     connectTimeoutMS=20000,
                     socketTimeoutMS=30000,
                     tlsCAFile=certifi.where(),
+                    tlsAllowInvalidCertificates=True,
                     retryWrites=True,
                     retryReads=True
                 )
