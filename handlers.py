@@ -114,16 +114,31 @@ async def process_link_task(queue, links, raw_text2, raw_text3, raw_text4, b_nam
                 url = url.replace("https://cpvod.testbook.com/","https://media-cdn.classplusapp.com/drm/")
                 url = f"{API_CP}{url}&jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNlcl8xNzY1OTA5MTYyIiwiZXhwIjoxNzY4MzI4MzYyLCJpYXQiOjE3NjU5MDkxNjIsInR5cGUiOiJwcmVtaXVtIn0.5qsn7064iVUYFpZ5uFxlZwqK_SS2FR2QCOKh9cHH_5Q"
                 mpd, keys = helper.get_mps_and_keys(url)
+                if mpd is None:
+                    await bot.send_message(channel_id, f'⚠️**Downloading Failed**⚠️\n**Name** =>> `{current_count_str} {name1}`\n**Url** =>> {link0}\n\n<blockquote><i><b>Failed Reason: API Error - MPD not found (Check Token)</b></i></blockquote>', disable_web_page_preview=True)
+                    stats['failed'] += 1
+                    queue.task_done()
+                    continue
                 url = mpd
                 keys_string = " ".join([f"--key {key}" for key in keys])
                 stats['drm'] += 1
 
             elif "classplusapp" in url and "m3u8" in url:
                 signed_api =  f"{API_CP}{url}&jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNlcl8xNzY1OTA5MTYyIiwiZXhwIjoxNzY4MzI4MzYyLCJpYXQiOjE3NjU5MDkxNjIsInR5cGUiOiJwcmVtaXVtIn0.5qsn7064iVUYFpZ5uFxlZwqK_SS2FR2QCOKh9cHH_5Q"
-                response = requests.get(signed_api, timeout=40)
-                url = response.text.strip()
-                url = response.json()['url']
-                stats['m3u8'] += 1
+                try:
+                    response = requests.get(signed_api, timeout=40)
+                    response.raise_for_status()
+                    data = response.json()
+                    if 'url' in data:
+                        url = data['url']
+                    else:
+                        raise ValueError("No URL in JSON response")
+                    stats['m3u8'] += 1
+                except Exception as e:
+                    await bot.send_message(channel_id, f'⚠️**Downloading Failed**⚠️\n**Name** =>> `{current_count_str} {name1}`\n**Url** =>> {link0}\n\n<blockquote><i><b>Failed Reason: API JSON Error - {str(e)}</b></i></blockquote>', disable_web_page_preview=True)
+                    stats['failed'] += 1
+                    queue.task_done()
+                    continue
 
             elif "childId" in url and "parentId" in url:
                 url = f"https://anonymouspwplayer-0e5a3f512dec.herokuapp.com/pw?url={url}&token={raw_text4}"

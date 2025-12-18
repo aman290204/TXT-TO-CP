@@ -121,11 +121,19 @@ def duration(filename):
 
 
 def get_mps_and_keys(api_url):
-    response = requests.get(api_url)
-    response_json = response.json()
-    mpd = response_json.get('mpd_url')
-    keys = response_json.get('keys')
-    return mpd, keys
+    try:
+        response = requests.get(api_url, timeout=30)
+        response.raise_for_status()
+        response_json = response.json()
+        mpd = response_json.get('mpd_url')
+        keys = response_json.get('keys')
+        if not mpd or not keys:
+            print(f"⚠️ API returned incomplete data: mpd={bool(mpd)}, keys={bool(keys)}")
+            return None, None
+        return mpd, keys
+    except Exception as e:
+        print(f"⚠️ Error in get_mps_and_keys: {str(e)}")
+        return None, None
 
 
    
